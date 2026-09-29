@@ -1,0 +1,19 @@
+{
+  "name": "jushawn",
+  "owner": {
+    "name": "jushawn",
+    "url": "https://github.com/SpxZhu"
+  },
+  "description": "jushawn's skills, as an installable Claude Code plugin.",
+  "plugins": [
+    {
+      "name": "jushawn-skills",
+      "source": "./",
+      "description": "jushawn's agent skills.",
+      "category": "skills",
+      "keywords": [
+        "skills"
+      ]
+    }
+  ]
+}
