@@ -1,0 +1,6 @@
+interface:
+  display_name: "Show Me"
+  short_description: "Explain the current topic with a focused visual"
+
+policy:
+  allow_implicit_invocation: false
