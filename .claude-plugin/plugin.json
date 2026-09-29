@@ -15,6 +15,7 @@
   "skills": [
     "./skills/gpt-image-2-style-library",
     "./skills/show-me",
-    "./skills/typesafe-ai"
+    "./skills/typesafe-ai",
+    "./skills/handraw-style"
   ]
 }
