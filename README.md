@@ -3,7 +3,7 @@
 集中管理收集和编写的 Codex 技能，通过 GitHub 市场统一安装、启用和更新。
 整个仓库提供一个 `jushawn-skills` 插件，分类目录只用于组织文件。
 
-当前仅包含初始化框架，`skills/` 为空，没有可调用的技能，也尚未验证实际安装加载。
+目前已收录多个技能；实际安装加载情况尚未验证。
 
 ## 目录结构
 
@@ -87,3 +87,8 @@ Codex 使用安装缓存。只复制本地文件、只推送 GitHub 或只刷新
 初始化检查只覆盖 JSON 格式、插件声明和路径一致性。实际技能加载需在加入技能并安装后验证。
 
 配置依据：[OpenAI 插件打包与市场文档](https://developers.openai.com/plugins/build/plugins)。
+
+## 致谢与来源
+
+- `gpt-image-2-style-library` 来源于 [freestylefly/awesome-gpt-image-2](https://github.com/freestylefly/awesome-gpt-image-2)，上游仓库采用 MIT 许可证。
+- `show-me` 来源于 [HumanLayer/skills](https://github.com/humanlayer/skills)，上游仓库采用 MIT 许可证。
