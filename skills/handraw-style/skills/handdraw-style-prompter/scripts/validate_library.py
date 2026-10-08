@@ -26,97 +26,129 @@ def main() -> None:
     subprocess.run(python + [str(SKILL / "scripts" / "build_library.py")], check=True)
     subprocess.run(python + [str(SKILL / "scripts" / "build_layout_gallery.py")], check=True)
     subprocess.run(python + [str(SKILL / "scripts" / "build_color_gallery.py")], check=True)
+    subprocess.run(python + [str(SKILL / "scripts" / "build_assets_gallery.py")], check=True)
+    subprocess.run(python + [str(SKILL / "scripts" / "build_tutorial_gallery.py")], check=True)
     styles = json.loads((SKILL / "references" / "styles.json").read_text(encoding="utf-8"))
     attribution = json.loads((SKILL / "references" / "attribution.json").read_text(encoding="utf-8"))
     model_capabilities = json.loads((SKILL / "references" / "model_capabilities.json").read_text(encoding="utf-8"))
+    alias_file = SKILL / "references" / "style_alias_map.json"
+    if not alias_file.exists():
+        fail("style_alias_map.json is missing")
+    alias_data = json.loads(alias_file.read_text(encoding="utf-8"))
+    legacy_to_new = alias_data.get("legacy_to_new", {})
+    new_to_legacy = alias_data.get("new_to_legacy", {})
+    if len(legacy_to_new) != 327 or len(new_to_legacy) != 327:
+        fail("style_alias_map.json must contain 327 bidirectional mappings")
+
     total_styles = len(styles)
-    max_num = f"{total_styles:03}"
-    expected = [f"{n:03}" for n in range(1, total_styles + 1)]
-    if [item["number"] for item in styles] != expected:
-        fail(f"style numbering is not continuous 001–{max_num}")
-    eighteen = styles[17]
+    if total_styles != 327:
+        fail(f"expected 327 styles, got {total_styles}")
+
+    CATEGORIES = ["FA", "FB", "FC", "FD", "FE", "FF", "FG", "FH"]
+    cat_counts = {}
+    import re
+    for item in styles:
+        num = item["number"]
+        m = re.match(r"^([A-Za-z]{2})-(\d{3})$", num)
+        if not m:
+            fail(f"Invalid style ID format: {num}")
+        cat, idx = m.group(1), int(m.group(2))
+        if cat not in CATEGORIES:
+            fail(f"Unknown category in style ID: {num}")
+        expected_idx = cat_counts.get(cat, 0) + 1
+        if idx != expected_idx:
+            fail(f"Non-continuous style number in category {cat}: expected {cat}-{expected_idx:03}, got {num}")
+        cat_counts[cat] = idx
+
+    eighteen = next(item for item in styles if item["number"] == "FA-018")
     if eighteen["generation_name"] != "Minimal Deadpan Dialogue Cartoon":
-        fail("018 maps to the wrong generation name")
+        fail("FA-018 maps to the wrong generation name")
     if any(record.get("status") == "deceased" and not record.get("source") for record in attribution.values()):
         fail("a deceased attribution record has no verification source")
     if model_capabilities.get("default", {}).get("name_activation") != "unknown":
         fail("the model capability default must be unknown")
     if model_capabilities.get("default", {}).get("use_reference_image") is not True:
         fail("unknown model capability must use the image fallback")
+
+    all_style_ids = set(item["number"] for item in styles)
     for model, profile in model_capabilities.get("models", {}).items():
         if profile.get("name_activation") not in {None, "strong", "weak", "none", "unknown"}:
             fail(f"invalid model capability for {model}")
         if profile.get("traits_activation") not in {None, "strong", "weak", "none", "unknown"}:
             fail(f"invalid traits capability for {model}")
         for number, entry in profile.get("styles", {}).items():
-            if number not in expected:
+            if number not in all_style_ids and number not in legacy_to_new:
                 fail(f"model capability references invalid style {number}")
             if entry.get("name_activation") not in {"strong", "weak", "none", "unknown"}:
                 fail(f"invalid style capability for {model}/{number}")
             if entry.get("traits_activation") not in {None, "strong", "weak", "none", "unknown"}:
                 fail(f"invalid traits style capability for {model}/{number}")
-    unknown = resolve("unregistered-model", "001")
+
+    unknown = resolve("unregistered-model", "FA-001")
     if unknown["name_activation"] != "unknown" or not unknown["use_reference_image"]:
         fail("unknown model must use reference image")
+    if resolve("gpt-image-2", "FA-001")["use_reference_image"] is not False:
+        fail("gpt-image-2 style FA-001 should use name activation")
     if resolve("gpt-image-2", "001")["use_reference_image"] is not False:
-        fail("gpt-image-2 style 001 should use name activation")
-    style_011_res = resolve("gpt-image-2", "011")
+        fail("gpt-image-2 legacy style 001 resolution should match FA-001")
+
+    style_011_res = resolve("gpt-image-2", "FA-011")
     if style_011_res["activation_source"] != "name+style" or style_011_res["use_reference_image"] is not False or style_011_res["prompt_traits"]:
-        fail("style 011 must use author name activation only without reference image or traits")
-    manual_name = resolve("gpt-image-2", "262")
+        fail("style FA-011 must use author name activation only without reference image or traits")
+    manual_name = resolve("gpt-image-2", "FG-009")
     if manual_name["activation_source"] != "name+style" or manual_name["use_reference_image"] or manual_name["prompt_traits"]:
         fail("text-defined name-only style must use name activation without an image or traits")
-    if resolve("gpt-image-2", "155")["activation_source"] != "name+style+traits" or resolve("gpt-image-2", "155")["use_reference_image"] is not False:
+    if resolve("gpt-image-2", "FH-001")["activation_source"] != "name+style+traits" or resolve("gpt-image-2", "FH-001")["use_reference_image"] is not False:
         fail("gpt-image-2 style with positive traits should use name+traits activation")
+
     synthetic = {"default": model_capabilities["default"], "models": {
         "test-model": {"name_activation": "unknown", "traits_activation": "strong", "styles": {
-            "201": {"name_activation": "none"},
-            "002": {"name_activation": "strong"},
-            "022": {"name_activation": "none", "traits_activation": "none"},
+            "FE-016": {"name_activation": "none", "traits_activation": "none"},
+            "FA-002": {"name_activation": "strong"},
+            "FA-022": {"name_activation": "none", "traits_activation": "none"},
         }},
     }}
-    if resolve("test-model", "201", synthetic)["use_reference_image"] is not True:
+    if resolve("test-model", "FE-016", synthetic)["use_reference_image"] is not True:
         fail("empty traits or insufficient capability must use reference image")
-    if resolve("test-model", "002", synthetic)["use_reference_image"] is not False:
+    if resolve("test-model", "FA-002", synthetic)["use_reference_image"] is not False:
         fail("strong capability must not use reference image")
-    reference_with_traits = resolve("test-model", "022", synthetic)
+    reference_with_traits = resolve("test-model", "FA-022", synthetic)
     if (reference_with_traits["activation_source"] != "name+style+traits+reference-image"
             or not reference_with_traits["use_reference_image"]
             or not reference_with_traits["prompt_traits"]):
         fail("reference fallback with traits must preserve traits and require the image")
-    traits_case = resolve("gpt-image-2", "022")
+    traits_case = resolve("gpt-image-2", "FA-022")
     if traits_case["activation_source"] != "name+style+traits" or not traits_case["prompt_traits"] or "避免" in traits_case["prompt_traits"]:
         fail("gpt-image-2 traits activation did not produce filtered positive traits")
-    if resolve("gpt-image-2", "201")["use_reference_image"] is not True:
-        fail("empty-trait style must use reference image")
-    if bucket_name(1) != "001-200" or bucket_name(217) != "201-400" or bucket_name(401) != "401-600":
+    if resolve("gpt-image-2", "FE-016")["activation_source"] != "name+style+traits" or resolve("gpt-image-2", "FE-016")["use_reference_image"] is not False:
+        fail("style FE-016 should use name+style+traits activation")
+    if bucket_name("FA-001") != "FA" or bucket_name("FE-048") != "FE" or bucket_name("FF-001") != "FF":
         fail("style asset bucket calculation is incorrect")
-    reference_217 = resolve("gpt-image-2", "217")
+    reference_217 = resolve("gpt-image-2", "FF-001")
     if (reference_217["activation_source"] != "name+style+traits+reference-image"
             or not reference_217["prompt_traits"]
-            or reference_217["reference_path"] != str(grid_path(217))):
-        fail("style 217 must preserve traits and use its four-panel grid reference")
-    if not grid_path(217).exists():
-        fail("style 217 four-panel grid is missing")
-    for number in range(262, 269):
-        reference = resolve("unregistered-model", f"{number:03}")
-        if grid_path(number).exists() or reference["reference_path"] != str(single_path(number)):
-            fail(f"single-image style {number:03} must not retain a redundant grid reference")
-    if any(item["traits"] for item in styles[200:216] if item["number"] != "205"):
-        fail("201–216 core visual traits may only be populated for style 205")
-    style_205 = next(item for item in styles if item["number"] == "205")
-    if not style_205["traits"] or "坚持伟大式轻幽默Q版漫画" not in style_205["traits"]:
-        fail("style 205 core visual traits are missing")
-    if any(item["group"] != "G 附件新增 / 中国当代插画补充" for item in styles[200:216]):
-        fail("201–216 must remain in group G")
-    if any(item["group"] != "H 其他" for item in styles[216:]):
-        fail("217+ styles must belong to group H")
+            or reference_217["reference_path"] != str(grid_path("FF-001"))):
+        fail("style FF-001 (217) must preserve traits and use its four-panel grid reference")
+    if not grid_path("FF-001").exists():
+        fail("style FF-001 four-panel grid is missing")
+    for s_id in ["FG-007", "FG-008", "FG-009", "FG-010", "FB-033", "FE-060", "FE-061", "FE-062"]:
+        reference = resolve("unregistered-model", s_id)
+        if grid_path(s_id).exists() or reference["reference_path"] != str(single_path(s_id)):
+            fail(f"single-image style {s_id} must not retain a redundant grid reference")
+    fe_supplement = [s for s in styles if s["number"].startswith("FE-") and 32 <= int(s["number"].split("-")[1]) <= 47]
+    if any(not item["traits"] for item in fe_supplement):
+        fail("FE-032–FE-047 core visual traits must be populated")
+    style_205 = next(item for item in styles if item["number"] == "FE-036")
+    if not style_205["traits"] or "猫狗性格" not in style_205["traits"]:
+        fail("style FE-036 (old 205) core visual traits are missing")
+    if any(item["number"].split("-")[0] not in CATEGORIES for item in styles):
+        fail("all styles must belong to one of 8 categories")
     individual = ROOT / "images" / "individual"
-    expected_individual = [single_path(number) for number in range(1, total_styles + 1)]
+    expected_individual = [single_path(s["number"]) for s in styles]
     if not all(path.exists() for path in expected_individual):
-        fail(f"numbered asset buckets must cover exactly 001.webp–{max_num}.webp")
+        fail(f"category asset folders must cover all {total_styles} single webp images")
     if list(individual.glob("[0-9][0-9][0-9].webp")) or list(individual.glob("[0-9][0-9][0-9]_grid.webp")):
-        fail("flat individual assets must be migrated into numbered buckets")
+        fail("flat individual assets must be migrated into categorized folders")
     tweet_sheets = []
     for path in (ROOT / "images").glob("[GH]_*.webp"):
         parsed = parse_sheet(path)
@@ -145,15 +177,17 @@ def main() -> None:
             or last_path != sheet_path(last_start, last_end)):
         fail("Tweet contact-sheet state does not match the active sheet")
     gallery = (SKILL / "gallery" / "index.html").read_text(encoding="utf-8")
-    for _, _, path in tweet_sheets:
-        if path.name not in gallery:
-            fail(f"gallery is missing contact sheet {path.name}")
-    if 'data-number="217" data-group="H"' not in gallery or 'data-number="262" data-group="H"' not in gallery:
-        fail("gallery does not classify 217+ style cards as H")
-    if 'data-label="H · #217–#232"' not in gallery:
-        fail("gallery does not classify the first H contact sheet as H")
-    if "A_001-016.webp" not in gallery or "F_187-200.webp" not in gallery or "#018" not in gallery:
-        fail("gallery does not cover the expected sheets and style 018")
+    for cat in CATEGORIES:
+        if f'data-group="{cat}"' not in gallery:
+            fail(f"gallery does not classify style cards as {cat}")
+    for sample_id in ["FA-001", "FB-001", "FC-001", "FD-001", "FE-001", "FF-001", "FG-001", "FH-001", "FC-029", "FG-009"]:
+        if f'data-number="{sample_id}"' not in gallery:
+            fail(f"gallery style cards missing {sample_id}")
+    if '#FA-018' not in gallery:
+        fail("gallery style card #FA-018 is missing")
+    for token in [".gallery{--columns:14;--gap:8px", "masonry-column", "heights.indexOf(Math.min(...heights))", "ResizeObserver", 'class="style-card"', 'id="gallery"']:
+        if token not in gallery:
+            fail(f"gallery waterfall layout is missing {token}")
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     if "images/A_001-016.webp" not in readme:
         fail("README does not reference representative style preview image")
@@ -188,8 +222,10 @@ def main() -> None:
         'class="prompt-examples"',
         "1 · 出图",
         "2 · 切换图文模式",
-        "风格：001，主题：吃冰淇淋的小姑娘",
+        "3 · 海报提示词",
+        "风格：FA-001，主题：吃冰淇淋的小姑娘",
         "切换为图文模式",
+        "请帮我出海报提示词， 主题：秋分",
         "ui-monospace",
     ]
     if any(token not in gallery for token in prompt_example_tokens):
@@ -218,7 +254,7 @@ def main() -> None:
         if token in gallery:
             fail(f"gallery must not show non-update status or search UI: {token}")
     skill_text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
-    for token in ["Style activation policy", "name_activation=strong", "model_capabilities.json", "referenced_image_paths", "Use the attached image only as a style reference", "The user's written theme is the sole source for the image content", "images/individual/{bucket}/{number}.webp", "217_grid.webp"]:
+    for token in ["Style activation policy", "name_activation=strong", "model_capabilities.json", "referenced_image_paths", "Use the attached image only as a style reference", "The user's written theme is the sole source for the image content", "images/individual/{category}/{number}.webp", "FF-001_grid.webp"]:
         if token not in skill_text:
             fail(f"image-reference contract is missing {token}")
     for token in ["preserve the user's theme exactly", "Do not expand, paraphrase, interpret", "show the resolved reference image to the user outside the prompts", "Do not inject it into a `graphic-text` copyable prompt"]:
@@ -230,13 +266,15 @@ def main() -> None:
             fail(f"session initialization contract in nested SKILL.md is missing {token}")
         if token not in root_skill_text:
             fail(f"session initialization contract in root SKILL.md is missing {token}")
-    for token in ['id="preview"', 'class="sheet"', 'dialog.showModal()', 'event.target===dialog']:
+    for token in ['id="preview"', 'class="style-card"', 'dialog.showModal()', 'event.target===dialog']:
         if token not in gallery:
             fail(f"gallery preview interaction is missing {token}")
     result = subprocess.run(python + [str(SKILL / "scripts" / "prompt_style.py"), "--style", "18", "--theme", "秋天的第一杯奶茶"], capture_output=True, text=True, encoding="utf-8", check=True)
-    for term in ["风格名称：#018 · Minimal Deadpan Dialogue Cartoon", "Style name: #018 · Minimal Deadpan Dialogue Cartoon", "秋天的第一杯奶茶"]:
+    for term in ["风格名称：Minimal Deadpan Dialogue Cartoon", "Style name: Minimal Deadpan Dialogue Cartoon", "秋天的第一杯奶茶"]:
         if term not in result.stdout:
             fail(f"prompt output is missing {term}")
+    if "#FA-018" in result.stdout.split("中文提示词：")[1]:
+        fail("copyable prompt must not contain style number or IDs")
     if "俏皮的手绘线条" in result.stdout or "playful hand-drawn linework" in result.stdout:
         fail("default prompt unexpectedly contains the fixed style anchor")
     if "参考作者/风格名称：Poorly Drawn Lines / Reza Farazmand。" not in result.stdout or "Reference author/style name: Poorly Drawn Lines / Reza Farazmand." not in result.stdout:
@@ -245,7 +283,7 @@ def main() -> None:
         fail("default prompt must identify pure-image mode and offer the graphic-text switch")
     graphic_theme = "世界就是个草台班子"
     graphic_text = subprocess.run(
-        python + [str(SKILL / "scripts" / "prompt_style.py"), "--style", "267", "--theme", graphic_theme, "--mode", "graphic-text"],
+        python + [str(SKILL / "scripts" / "prompt_style.py"), "--style", "FE-060", "--theme", graphic_theme, "--mode", "graphic-text"],
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -262,31 +300,31 @@ def main() -> None:
     if "临时拼装、摇摇欲坠" in graphic_text.stdout:
         fail("graphic-text prompt must not expand the theme into a scene description")
     graphic_reference = subprocess.run(
-        python + [str(SKILL / "scripts" / "prompt_style.py"), "--style", "217", "--theme", "动画人物", "--mode", "graphic-text"],
+        python + [str(SKILL / "scripts" / "prompt_style.py"), "--style", "FF-001", "--theme", "动画人物", "--mode", "graphic-text"],
         capture_output=True,
         text=True,
         encoding="utf-8",
         check=True,
     )
-    if str(grid_path(217)) in graphic_reference.stdout or "参考图：请上传本地参考图" in graphic_reference.stdout or "所附图片仅用于参考画风" in graphic_reference.stdout:
+    if str(grid_path("FF-001")) in graphic_reference.stdout or "参考图：请上传本地参考图" in graphic_reference.stdout or "所附图片仅用于参考画风" in graphic_reference.stdout:
         fail("graphic-text prompt must not expose reference paths or isolation guidance")
     if "核心风格特征：奇想风格化3D卡通美学" not in graphic_reference.stdout:
         fail("graphic-text prompt must retain required positive style traits")
-    style_267 = subprocess.run(python + [str(SKILL / "scripts" / "prompt_style.py"), "--style", "267", "--theme", "很小的难过"], capture_output=True, text=True, encoding="utf-8", check=True)
+    style_267 = subprocess.run(python + [str(SKILL / "scripts" / "prompt_style.py"), "--style", "FE-060", "--theme", "很小的难过"], capture_output=True, text=True, encoding="utf-8", check=True)
     if "核心风格特征：白底中国式极简手绘漫画" not in style_267.stdout or "Core style traits: 白底中国式极简手绘漫画" not in style_267.stdout:
-        fail("style 267 prompt must include its positive core traits")
+        fail("style FE-060 prompt must include its positive core traits")
     if "参考图：请上传本地参考图" in style_267.stdout or "Reference image: upload local reference image" in style_267.stdout:
-        fail("style 267 must not require a reference image when traits activation is strong")
-    style_217 = subprocess.run(python + [str(SKILL / "scripts" / "prompt_style.py"), "--style", "217", "--theme", "动画人物"], capture_output=True, text=True, encoding="utf-8", check=True)
+        fail("style FE-060 must not require a reference image when traits activation is strong")
+    style_217 = subprocess.run(python + [str(SKILL / "scripts" / "prompt_style.py"), "--style", "FF-001", "--theme", "动画人物"], capture_output=True, text=True, encoding="utf-8", check=True)
     if ("核心风格特征：奇想风格化3D卡通美学" not in style_217.stdout
             or "参考图：请上传本地参考图" not in style_217.stdout
             or "所附图片仅用于参考画风" not in style_217.stdout):
         fail("reference-required prompt must include traits, local reference path, and isolation guidance")
-    invalid = subprocess.run(python + [str(SKILL / "scripts" / "prompt_style.py"), "--style", f"{total_styles + 1}", "--theme", "x"], capture_output=True, text=True, encoding="utf-8")
-    if invalid.returncode == 0 or f"001 to {max_num}" not in (invalid.stderr + invalid.stdout):
+    invalid = subprocess.run(python + [str(SKILL / "scripts" / "prompt_style.py"), "--style", "ZZ-999", "--theme", "x"], capture_output=True, text=True, encoding="utf-8")
+    if invalid.returncode == 0 or "not found" not in (invalid.stderr + invalid.stdout):
         fail("out-of-range style does not fail clearly")
-    blank_traits = subprocess.run(python + [str(SKILL / "scripts" / "prompt_style.py"), "--style", "214", "--theme", "都市大妖"], capture_output=True, text=True, encoding="utf-8", check=True)
-    if "参考作者/风格名称：天翊羽。" not in blank_traits.stdout or "Reference author/style name: 天翊羽." not in blank_traits.stdout:
+    blank_traits = subprocess.run(python + [str(SKILL / "scripts" / "prompt_style.py"), "--style", "269", "--theme", "海底世界", "--model", "unregistered-model"], capture_output=True, text=True, encoding="utf-8", check=True)
+    if "参考作者/风格名称：社会主义现实主义宣传画。" not in blank_traits.stdout or "Reference author/style name: 社会主义现实主义宣传画." not in blank_traits.stdout:
         fail("blank-trait author/style anchor is missing")
     if "采用该风格的视觉方向" in blank_traits.stdout or "Faithfully render these visual traits" in blank_traits.stdout:
         fail("blank traits were turned into prompt constraints")
@@ -312,7 +350,7 @@ def main() -> None:
     for layout in layouts:
         if layout_gallery.count(f'data-id="{layout["id"]}"') != 1:
             fail(f"layout gallery must contain exactly one card for {layout['id']}")
-    for token in ["图型编号画廊", 'href="index.html"', 'href="layouts.html" aria-current="page"', "SC-001", "SC-002", "SC-004", "SC-005", "SC-006", "SC-007", "SC-008", "SC-009", "SC-010", "SC-011", "SC-012", "SC-014", "SC-015", "SC-016", "SC-017", "SC-018", "SC-019", "SC-020", "IG-001", "IG-002", "IG-003", "IG-004", "IG-005", "IG-006", "IG-007", "IG-008", "IG-009", f"信息图 <span>{sum(item['category'] == 'infographic' for item in layouts)}</span>", "复制排版提示词", "navigator.clipboard.writeText", "setCategory('social-card')", ".site-nav a{border:1px solid", "main{max-width:1440px;margin:auto;padding:18px 30px 30px}", ".gallery{--columns:4;--gap:18px", "@media(max-width:1100px){.gallery{--columns:3}}", ".masonry-column{display:flex;flex-direction:column", "ResizeObserver", "requestAnimationFrame", "heights.indexOf(Math.min(...heights))", ".layout-card img{display:block;width:100%;height:auto}", 'class="layout-info"', ".layout-id{color:#b74227", ".layout-name{overflow:hidden", "@media(max-width:720px){main{padding:16px 20px 20px}", ".gallery{--columns:2;--gap:12px}", "@media(max-width:420px){.gallery{--columns:1}}"]:
+    for token in ["图型编号画廊", 'href="index.html"', 'href="layouts.html" aria-current="page"', "SC-001", "SC-002", "SC-004", "SC-005", "SC-006", "SC-007", "SC-008", "SC-009", "SC-010", "SC-011", "SC-012", "SC-014", "SC-015", "SC-016", "SC-017", "SC-018", "SC-019", "SC-020", "IG-001", "IG-002", "IG-003", "IG-004", "IG-005", "IG-006", "IG-007", "IG-008", "IG-009", f"信息图 <span>{sum(item['category'] == 'infographic' for item in layouts)}</span>", "复制排版提示词", "navigator.clipboard.writeText", "setCategory('social-card')", ".site-nav a{border:1px solid", "main{max-width:1440px;margin:auto;padding:18px 30px 30px}", ".gallery{--columns:4;--gap:18px", '[data-size="1x"] .gallery{--columns:8;--gap:10px}', "@media(max-width:1100px){.gallery{--columns:3}}", ".masonry-column{display:flex;flex-direction:column", "ResizeObserver", "requestAnimationFrame", "heights.indexOf(Math.min(...heights))", ".layout-card img{display:block;width:100%;height:auto}", 'class="layout-info"', ".layout-id{color:#b74227", ".layout-name{overflow:hidden", "@media(max-width:720px){main{padding:16px 20px 20px}", ".gallery{--columns:2;--gap:12px}", "@media(max-width:420px){.gallery{--columns:1}}"]:
         if token not in layout_gallery:
             fail(f"layout gallery is missing {token}")
     if "信息图 <span>0</span>" in layout_gallery or "id=\"empty\"" in layout_gallery:
@@ -329,13 +367,13 @@ def main() -> None:
         python + [str(SKILL / "scripts" / "prompt_style.py"), "--layout", "IG-007", "--theme", "秋天的第一杯奶茶"],
         capture_output=True, text=True, encoding="utf-8", check=True,
     )
-    if "图型：IG-007 · 粗体标题标签小图卡。" not in layout_zh.stdout or "自动使用图文模式" not in layout_zh.stdout or GRAPHIC_TEXT_SUFFIX not in layout_zh.stdout:
+    if "图型：粗体标题标签小图卡。" not in layout_zh.stdout or "自动使用图文模式" not in layout_zh.stdout or GRAPHIC_TEXT_SUFFIX not in layout_zh.stdout:
         fail("Chinese layout-only prompt is missing its layout contract or stacked graphic-text suffix")
     layout_en = subprocess.run(
         python + [str(SKILL / "scripts" / "prompt_style.py"), "--layout", "IG-007", "--style", "18", "--theme", "Autumn's first milk tea"],
         capture_output=True, text=True, encoding="utf-8", check=True,
     )
-    for term in ["Layout: IG-007 · 粗体标题标签小图卡.", "Theme: Autumn's first milk tea.", "Style name: #018 · Minimal Deadpan Dialogue Cartoon.", GRAPHIC_TEXT_SUFFIX]:
+    for term in ["Layout: Bold Headline Tag Cards.", "Theme: Autumn's first milk tea.", "Style name: Minimal Deadpan Dialogue Cartoon.", GRAPHIC_TEXT_SUFFIX]:
         if term not in layout_en.stdout:
             fail(f"English layout-and-style prompt is missing {term}")
     invalid_layout = subprocess.run(
@@ -355,11 +393,11 @@ def main() -> None:
     if not colors_file.exists():
         fail("colors.json is missing")
     colors = json.loads(colors_file.read_text(encoding="utf-8"))
-    if len(colors) != 30:
-        fail(f"colors.json must contain exactly 30 colors, got {len(colors)}")
-    expected_color_ids = [f"C-{i:02d}" for i in range(1, 31)]
+    if len(colors) != 36:
+        fail(f"colors.json must contain exactly 36 colors, got {len(colors)}")
+    expected_color_ids = [f"C-{i:02d}" for i in range(1, 37)]
     if [c["id"] for c in colors] != expected_color_ids:
-        fail("color IDs must be continuous C-01 to C-30")
+        fail("color IDs must be continuous C-01 to C-36")
     for c in colors:
         c_img = ROOT / str(c["image"]).replace("../../../", "")
         if not c_img.is_file():
@@ -420,9 +458,121 @@ def main() -> None:
     if invalid_color.returncode == 0 or "Unknown color ID" not in (invalid_color.stderr + invalid_color.stdout):
         fail("unknown color ID does not fail clearly")
 
+    auto_res = subprocess.run(
+        python + [str(SKILL / "scripts" / "prompt_style.py"), "--theme", "秋天的第一杯奶茶", "--auto"],
+        capture_output=True, text=True, encoding="utf-8", check=True,
+    )
+    if "💡 推荐理由" not in auto_res.stdout or "Selected style:" not in auto_res.stdout or "Selected color:" not in auto_res.stdout:
+        fail("auto recommendation output is missing expected banner, style, or color")
+
+    tutorials_file = ROOT / "TUTORIALS.md"
+    tutorials_en_file = ROOT / "TUTORIALS_en.md"
+    if not tutorials_file.exists():
+        fail("TUTORIALS.md is missing")
+    if not tutorials_en_file.exists():
+        fail("TUTORIALS_en.md is missing")
+    tutorials_md = tutorials_file.read_text(encoding="utf-8")
+    tutorials_en_md = tutorials_en_file.read_text(encoding="utf-8")
+    if "TUTORIALS.md" not in readme:
+        fail("README.md must reference TUTORIALS.md")
+    if "TUTORIALS_en.md" not in readme_en:
+        fail("README_en.md must reference TUTORIALS_en.md")
+    for technique in ["技巧一：万能海报思维法", "技巧二：智能抽卡", "技巧三：精准组装法", "技巧四：图文模式"]:
+        if technique not in tutorials_md:
+            fail(f"TUTORIALS.md missing {technique}")
+    for technique_en in [
+        "Tip 1: The Universal Poster Mindset",
+        "Tip 2: Style Gacha",
+        "Tip 3: The Precise Assembly Method",
+        "Tip 4: Graphic-Text Mode",
+    ]:
+        if technique_en not in tutorials_en_md:
+            fail(f"TUTORIALS_en.md missing {technique_en}")
+
+    tutorials_gallery_file = SKILL / "gallery" / "tutorials.html"
+    if not tutorials_gallery_file.exists():
+        fail("tutorials.html is missing")
+    tutorial_gallery = tutorials_gallery_file.read_text(encoding="utf-8")
+    for token in ['href="index.html"', 'href="layouts.html"', 'href="colors.html"', 'href="tutorials.html" aria-current="page"', "copy-btn", "navigator.clipboard.writeText", "tutorial-card", "formula-box", "tutorials-list"]:
+        if token not in tutorial_gallery:
+            fail(f"tutorial gallery is missing {token}")
+
+    if 'href="tutorials.html"' not in gallery:
+        fail("style gallery is missing link to tutorials.html")
+    if 'href="tutorials.html"' not in layout_gallery:
+        fail("layout gallery is missing link to tutorials.html")
+    if 'href="tutorials.html"' not in color_gallery:
+        fail("color gallery is missing link to tutorials.html")
+
+    characters_file = SKILL / "references" / "characters.json"
+    if not characters_file.exists():
+        fail("characters.json is missing")
+    characters = json.loads(characters_file.read_text(encoding="utf-8"))
+    if not any(c["id"] == "CH-001" for c in characters):
+        fail("CH-001 preset character is missing in characters.json")
+    for c in characters:
+        c_img = ROOT / str(c["image"]).replace("../../../", "")
+        if not c_img.is_file():
+            fail(f"character image is missing for {c['id']}: {c_img}")
+
+    props_file = SKILL / "references" / "props.json"
+    if not props_file.exists():
+        fail("props.json is missing")
+    scenes_file = SKILL / "references" / "scenes.json"
+    if not scenes_file.exists():
+        fail("scenes.json is missing")
+
+    assets_gallery_file = SKILL / "gallery" / "assets.html"
+    if not assets_gallery_file.exists():
+        fail("assets.html is missing")
+    assets_gallery = assets_gallery_file.read_text(encoding="utf-8")
+    for token in ['href="index.html"', 'href="layouts.html"', 'href="colors.html"', 'href="assets.html" aria-current="page"', 'href="tutorials.html"', "CH-001", "IP-002", "init-notice-banner", "guide-steps-list", 'data-tab="characters"', 'data-tab="props"', 'data-tab="scenes"', "preview-dialog"]:
+        if token not in assets_gallery:
+            fail(f"assets gallery is missing {token}")
+    if "select-dir-btn" in assets_gallery or "add-char-btn" in assets_gallery:
+        fail("assets gallery should not contain directory selection or web import form")
+    if 'src="../../../images/custom/custom_assets.js"' not in assets_gallery:
+        fail("assets.html must load isolated custom_assets.js loader")
+    if 'src="../../../images/custom/custom_assets.js"' not in tutorial_gallery:
+        fail("tutorials.html must load isolated custom_assets.js loader")
+
+    # Assert that no private local custom assets ever leak into git-tracked HTML files
+    import re
+    custom_leak_pattern = re.compile(r'\b(CH-00[2-9]|CH-0[1-9][0-9]|PR-\d{3}|SCN-\d{3})\b|images/custom/(characters|props|scenes)/')
+    for html_file in [assets_gallery_file, tutorials_gallery_file]:
+        html_text = html_file.read_text(encoding="utf-8")
+        leaks = custom_leak_pattern.findall(html_text)
+        if leaks:
+            fail(f"Local custom asset leaked into git-tracked {html_file.name}: {leaks}")
+
+    characters_redirect_file = SKILL / "gallery" / "characters.html"
+    if not characters_redirect_file.exists():
+        fail("characters.html redirect is missing")
+    if 'url=assets.html' not in characters_redirect_file.read_text(encoding="utf-8"):
+        fail("characters.html must redirect to assets.html")
+
+    if 'href="assets.html"' not in gallery:
+        fail("style gallery is missing link to assets.html")
+    if 'href="assets.html"' not in layout_gallery:
+        fail("layout gallery is missing link to assets.html")
+    if 'href="assets.html"' not in color_gallery:
+        fail("color gallery is missing link to assets.html")
+    if 'href="assets.html"' not in tutorial_gallery:
+        fail("tutorial gallery is missing link to assets.html")
+
 
     import yaml
-    for sf in [ROOT / "SKILL.md", SKILL / "SKILL.md", ROOT / "skills" / "article-illustration-planner" / "SKILL.md"]:
+    for sf in [
+        ROOT / "SKILL.md",
+        SKILL / "SKILL.md",
+        ROOT / "skills" / "article-illustration-planner" / "SKILL.md",
+        ROOT / "skills" / "poster-prompt-generator" / "SKILL.md",
+        ROOT / "skills" / "article-cover-designer" / "SKILL.md",
+        ROOT / "skills" / "style-fusion-prompter" / "SKILL.md",
+        ROOT / "skills" / "custom-asset-manager" / "SKILL.md",
+        ROOT / "skills" / "ip-designer" / "SKILL.md",
+        ROOT / "skills" / "couple-photo-orchestrator" / "SKILL.md",
+    ]:
         if sf.exists():
             content = sf.read_text(encoding="utf-8")
             if not content.startswith("---"):
@@ -445,10 +595,12 @@ def main() -> None:
         if file_path.suffix in (".md", ".json", ".py", ".html", ".yaml", ".yml") and file_path.exists():
             text = file_path.read_text(encoding="utf-8", errors="ignore")
             for line_no, line in enumerate(text.splitlines(), 1):
+                if re.search(r'path[\\/]+to', line, re.I):
+                    continue
                 if drive_leak_pattern.search(line):
                     fail(f"Local drive path leaked in tracked file {rel_path}:{line_no}: {line.strip()[:100]}")
 
-    print(f"PASS: {total_styles} styles, {len(layouts)} layouts, {len(colors)} colors, gallery coverage, prompt contract, YAML frontmatter, path leak guard, and invalid-ID guards.")
+    print(f"PASS: {total_styles} styles, {len(layouts)} layouts, {len(colors)} colors, {len(characters)} preset characters, custom assets library (characters/props/scenes), tutorials section, gallery coverage, prompt contract, YAML frontmatter, path leak guard, and invalid-ID guards.")
 
 
 if __name__ == "__main__":

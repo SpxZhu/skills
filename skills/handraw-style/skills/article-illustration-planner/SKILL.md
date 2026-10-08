@@ -1,649 +1,196 @@
 ---
 name: article-illustration-planner
-description: Analyze an article, choose the most valuable illustration positions, design what each illustration should communicate, and generate image prompts using a selected style from the hand-drawn style library. Supports both preserving the original article and selectively replacing or simplifying text with visual expression.
+description: 深度分析文章脉络，精准规划插图点位与视觉意象。对知识类/教程类文章默认启动“认知降负与高保真图替繁文机制”，严禁删除公式与量化指标，强制协同 165 种排版图型（IG-*信息图/SC-*社媒卡）与 327 种手绘风格/36 种经典配色，杜绝微缩杂物摆拍；对非知识类文章保持叙事氛围与意境。严格执行双向间距（400~1200字）与全篇章节均衡覆盖，支持自主生图或全自动插图回填排版。
 ---
 
+# Article Illustration Planner (文章配图规划与插图回填)
 
-# Article Illustration Planner
-
-Turn an article into a coherent visual-illustration plan.
-
-The user provides:
-
-* an article or substantial article draft;
-* a hand-drawn style number from the installed style library.
-
-The Skill decides:
-
-* whether the article actually benefits from illustrations;
-* where illustrations add the most value;
-* how many illustrations are appropriate;
-* what each image should communicate;
-* whether an image should supplement, explain, replace, or reorganize part of the text;
-* how to express each illustration in the selected visual style.
-
-Do not mechanically illustrate every paragraph.
-
-Do not distribute images at fixed intervals.
-
-Do not force a predetermined number of illustrations.
-
-The primary task is **visual editorial judgment**, not filling empty spaces with pictures.
+深度分析文章结构与认知流转，精准规划高质量插图方案，并交付完成排版与文字修剪的最终图文定稿。
 
 ---
 
-# Core Principle
+## 核心设计哲学：体裁自适应与认知降负
 
-First determine:
+在规划任何插图之前，Skill 必须首先判断文章体裁，并自动适配两套截然不同的工作模式：
 
-> What does this article need visually?
+### 模式 A：知识 / 干货 / 教程 / 实操类文章 (Knowledge & Explanatory Articles)
+> **核心使命：认知降负（Cognitive Load Reduction）与高保真视觉替换（High-Fidelity Text-to-Diagram Replacement）**
 
-Only then determine:
+知识类文章的最大痛点是枯燥冗长的机制推演、层级漏斗、公式算法与多分支逻辑。配图的核心使命是**“辅助理解、减轻读者负担”**。为此，模式 A 严格确立以下四大红线铁律与执行标准：
 
-> What should each image contain?
+#### 1. 四大绝对红线（Hard Constraints & Redlines）
+- **红线 1：严禁物理微缩摄影与实景桌面摆拍（No Miniature / Physical Desk Props）**：
+  - 严禁在提示词中加入“缩微摄影、写实木质书桌、做旧白板/黑板、咖啡杯、钢笔、放大镜、书籍、生活杂物堆叠、大光圈背景虚化（Bokeh）”等任何物理摆拍或微缩场景！
+  - 物理环境和景深虚化会吃掉 30%~40% 的画幅面积，严重压缩核心图表的可视尺寸，并在移动端造成严重的视觉噪音；
+  - **画面必须 100% 聚焦于图表本身**，采用纯净留白或浅色纯色背景，信息架构饱满清晰。
+- **红线 2：严禁非业务叙事角色与童话拟人元素（No Irrelevant Narrative Characters / Fairy Dolls）**：
+  - 严禁引入童话小精灵、魔法棒、指引玩偶、小向导人物、无关花草动物等装饰性叙事元素；
+  - 知识图解的主角是**几何流向、信息卡片、核心数据、步骤标签与结构逻辑**，绝非“玩具人在黑板前摆造型”。
+- **红线 3：严禁核心知识阉割（Zero Knowledge Loss / Non-Destructive Pruning）**：
+  - **“文字替换”的本质是降低阅读阻力，绝不是“把核心干货删了换一张空泛大图”**！
+  - **【绝对禁止删除的硬核资产】**：
+    1. 数学公式与计算权重（如小红书 CES 评分公式：点赞×1 + 收藏×1 + 评论×4 + 转发×4 + 关注×8）；
+    2. 明确的量化阈值与判断标准（如 CTR > 8%、曝光 < 200、完播率 < 15%）；
+    3. 关键业务台词与对话模板（如起号脚本四段式的具体台词示范）；
+    4. 法律/合规避坑红线与平台核心禁忌。
+  - **【高保真替换保全机制】**：
+    - 图表本身**必须直接将核心公式、权重数字、判断阈值作为关键视觉标签画入图中**；
+    - 替换后的正文精炼导读**必须继续保留核心结论与数值（以高亮公式块或极简清单形式呈现）**，确保读者无论只看图还是只看文字，都不会遭遇知识断层与信息贬值！
+- **红线 4：严禁空洞文字搬家，必须采用真正的图形化隐喻（True Visual Metaphors）**：
+  - 图示之所以能降负，是因为它用空间与几何形状替代了文字推导：
+    - 层级跃迁/池子晋级 $\to$ **上升阶梯 / 金字塔**（如 `IG-010` 阶段进阶、`IG-001` 金字塔）；
+    - 数据流失/筛选转化 $\to$ **逐层收窄漏斗**（如 `IG-013` 漏斗型）；
+    - 权重对比/方案取舍 $\to$ **天平 / 杠杆 / 双列解剖**（如 `IG-004` 双列对比）；
+    - 界面结构/系统拆解 $\to$ **中心主图标注**（如 `IG-002` 中心标注）；
+    - 多分支排错/SOP $\to$ **决策流转树**（如 `IG-008` 流程步骤）；
+    - 心理锚定对比 $\to$ **三列高低梯形 / 视觉视线焦点引导**；
+  - 严禁只是画几个方块把文字抄一遍！
 
-The selected style number controls **how the image is drawn**.
+#### 2. 原生协同 165 种排版图型库（Layout Library Integration）
+知识类配图**强制从项目排版图型库（特别是 35 种 `IG-*` 信息图与 21 种 `SC-*` 社媒卡）中精准匹配图型 ID**！
+直接继承排版图型的原生构图指令（纯色背景、留白舒适、几何结构），再注入业务主题、步骤标签、手绘风格（#001–#327，优先纯净清爽的线稿/扁平/矢量风格如 `#001 极简白描`、`#054 包豪斯几何`、`#216 扁平矢量设计`、`#018 极简冷面幽默`）与经典主题色（C-01–C-36）。
 
-It must not determine **what the image is about**.
-
-Separate these two decisions:
-
-1. visual communication strategy;
-2. visual style.
-
----
-
-# Default Behavior
-
-Default to **Preserve mode**.
-
-In Preserve mode:
-
-* do not rewrite the article;
-* do not delete article content;
-* identify suitable insertion points;
-* design illustrations that supplement the existing text.
-
-Only modify, shorten, replace, or reorganize article text when the user explicitly requests or accepts **Visual Rewrite mode**.
-
-Do not generate images unless the user explicitly asks to generate, render, preview, or produce the images.
-
-The normal first response is an illustration plan plus generation prompts.
-
----
-
-# Inputs
-
-Required:
-
-1. Article content.
-2. Style number.
-
-Resolve the style number from the current installed hand-drawn style index. Do not hard-code the maximum style number into this Skill.
-
-Optional user constraints may include:
-
-* publishing platform;
-* desired illustration density;
-* aspect ratio;
-* whether a cover image is needed;
-* whether text may be modified;
-* whether text may appear inside images;
-* target audience;
-* any subjects, symbols, visual elements, or content the user wants to avoid.
-
-Do not require optional parameters when the article itself provides enough information.
-
-Infer sensible decisions from the article whenever possible.
+#### 3. 双向间距约束与全篇章节巡检（Balanced Spacing & Global Chapter Audit）
+- **最小物理间距约束（Minimum Separation Distance）**：
+  相邻两张插图之间，**正文间隔严禁少于 400~500 字**，且必须至少跨越一个完整的二级/三级标题。严禁在同一小节连续插图！
+- **最大物理间距红线（Maximum Separation Distance）**：
+  长篇教程（>2500字）正文**连续 1000~1200 字以上（或跨越 2 个以上大章节）严禁完全无图**！杜绝“前密后空”或“中间整整两章大断层”；
+- **全篇网格化扫描覆盖**：
+  必须对全篇大章节进行巡检，确保【底层原理】、【基础基建/准备】、【核心定位/对标】、【工业化SOP】、【数据诊断/排错】、【商业变现/闭环】等关键模块均有均衡的视觉锚点；
+  - 2000~4000 字：建议 3~4 张图；
+  - 4000~8000 字：建议 5~7 张图。
 
 ---
 
-# Modes
+### 模式 B：非知识类文章（抒情散文、叙事故事、随笔、小说等） (Non-Knowledge Articles)
+> **核心使命：意境烘托、情绪共鸣与视觉停顿 (Atmospheric Resonance & Visual Pauses)**
 
-## Preserve Mode
-
-Default mode.
-
-Keep the article unchanged.
-
-Illustrations may:
-
-* establish atmosphere;
-* create visual pauses;
-* reinforce an important idea;
-* make an abstract idea concrete;
-* explain a difficult concept;
-* visualize a process or relationship;
-* create a visual transition;
-* strengthen the ending.
-
-The images supplement the article rather than replacing it.
+1. **保留原文不删改（Preserve Mode）**：不强求替换或删改原文文字，完整保留作者叙事与文风；
+2. **风格可保持现有艺术探索**：可自由使用叙事微距、诗意隐喻、手绘插画等视觉风格，重点在于烘托情绪、营造意境与提供阅读节奏中的视觉呼吸感；
+3. **点位遵循自然叙事转折**：选择在情绪转换、场景切换、时空跨越处插入。
 
 ---
 
-## Visual Rewrite Mode
+## 知识类文章的高认知负荷段落扫描库 (7 大图替繁文场景与排版图型匹配)
 
-Use only when requested or clearly approved by the user.
+当处理知识类文章时，Skill 必须主动在文章中检索并锚定以下 7 类最具“图替繁文”价值的段落，并绑定推荐排版图型：
 
-The Skill may selectively:
-
-* shorten repetitive passages;
-* remove text that can be communicated more effectively through an image;
-* convert explanatory prose into a visual relationship;
-* turn long comparisons into visual comparisons;
-* convert processes into visual sequences;
-* reorganize a small section around an illustration.
-
-Preserve the author's meaning, tone, and argument.
-
-Do not rewrite the whole article simply because rewriting is allowed.
-
-Prefer the smallest textual intervention that creates a meaningful improvement.
-
-Never remove information whose precision is important and difficult to preserve visually.
-
-Examples include:
-
-* exact definitions;
-* numbers;
-* dates;
-* legal or technical wording;
-* important qualifications;
-* source attribution;
-* factual distinctions;
-* conclusions that could become ambiguous when converted into imagery.
+| 高认知负荷类型 | 原文典型特征 | 绑定推荐排版图型 (Layout ID) | 核心保真要素 (必须保留) | 图解视觉构思与降负机制 |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. 算法与加权数学模型** | 包含加权公式、乘数权重、多指标综合计分 | `IG-001` (金字塔信息图) 或 `IG-006` (多层对比) | 公式公式体、各项权重数字（如×1, ×4, ×8） | 图解维度权重天平或综合金字塔，文字保留公式块，图示呈现加权层级。 |
+| **2. 阶梯跃迁与等级晋级** | 阶梯池晋级、流量池层级、长篇 ASCII 方块 | `IG-010` (阶段等级进阶信息图) | 各阶曝光区间（如200-500, 1000-5000）、晋级考核核心指标 | 阶梯递进图，箭头向上，**直接彻底替换原篇 ASCII 方块**。 |
+| **3. 漏斗转化与逐层流失** | 漏斗诊断、曝光/点击/阅读/互动/转化矩阵 | `IG-013` (漏斗转化型信息图) | 各层量化标准（如CTR>8%、完播率<15%）、对应优化动作 | 上宽下窄漏斗，右侧标出断点优化动作，直观展示逐层过滤。 |
+| **4. 界面解剖与系统模块** | 主页五件套、硬件配置网络隔离、模块解剖 | `IG-002` (中心主图标注信息图) | 核心要素清单、功能定位、避坑要求 | 中心为原型/手机界面轮廓，四周放射引线标注各模块要求与雷区。 |
+| **5. 正反案例与多方案对比** | 爆款 vs 败笔对比、痛点前后反差、三大商业路径 | `IG-004` (双列多行对比) 或 `IG-011` (前后对比) | 对比维度、适用人群、转化路径 | 左右/双列清晰分栏，左侧低效/败笔，右侧高效/标杆，一目了然。 |
+| **6. 工业化 SOP 与执行管线** | 多步骤时序、多分支决策排错、四段式脚本 | `IG-008` (多路径流程步骤图) | 关键台词话术示范、先后顺序、排错分支 | 带有图标的水平/S形流动步骤条，节点清晰，箭头可读。 |
+| **7. 价格锚定与产品矩阵** | 多 SKU 组合、定价心理学、主推款 vs 陪衬款 | `IG-007` (标签小图卡) 或 `SC-004` (图文分区卡) | 价格数字（19.9/35.9/59.9）、销量主力占比（70%）、锚定作用 | 三列并排卡片，高亮突出中间主力款，标注心理锚定效应箭头。 |
 
 ---
 
-# Article Understanding
+## 输入参数与配置规范
 
-Before selecting images, understand the article as a whole.
-
-Internally identify:
-
-* central idea;
-* article type;
-* major sections;
-* argument or narrative progression;
-* information-density changes;
-* emotional changes;
-* conceptual difficulty;
-* places where prose becomes repetitive;
-* places where a visual could communicate something words are currently carrying inefficiently.
-
-Do not expose lengthy internal analysis unless the user asks for it.
-
-The visible output should focus on useful editorial decisions.
+1. **文章内容或本地路径**：直接粘贴正文，或提供本地路径（如 `D:\path\to\article.md`）。
+2. **手绘风格与色彩基调**：
+   - 风格编号：全库 `#001`–`#327`；
+   - 知识类文章推荐准则：严禁推荐儿童童话风、抽象乱涂风；优先推荐纯净清爽、线稿块面分明、利于信息传达的风格（如 `#001 极简白描`、`#054 包豪斯几何构成`、`#216 扁平矢量设计`、`#018 极简冷面幽默` 等）；
+   - 主题色编号：全库 `C-01`–`C-36`，优先稳重专业色调（如 `C-01 经典蓝`、`C-10 鼠尾草绿`、`C-31 佩恩灰`、`C-05 暖赭石`、`C-22 普鲁士蓝`）；
+   - 动态研判：若未指定，由 AI 结合文章语境动态推荐一套贯穿全篇的单一风格与单色调（严禁全篇风格杂乱）。
+3. **画幅比例 (Aspect Ratio)**：
+   - **默认 4:3**（长文横向阅读流标准）；移动端社交卡支持 `3:4` 或 `16:9`。
+4. **留白与背景控制 (Whitespace & Background)**：
+   - 知识类图解强制纯净背景与舒适留白，严禁杂物背景。
 
 ---
 
-# Article Types
+## 标准规划方案输出模板 (Output Format)
 
-Do not require the user to classify the article.
+首先出具总体设计决策：
+* **文章类型判定**：知识类 / 教程类 / 散文抒情类 / 叙事故事类
+* **适配工作模式**：模式 A（认知降负与高保真图替繁文） / 模式 B（意境烘托与保全模式）
+* **全篇统领视觉规范**：排版图型基调（IG/SC）、手绘风格编号及名称、主题色编号及名称、统一画幅比例（`4:3`）
+* **全篇章节覆盖度与间距审计**：列出全篇章节清单，标注各配图覆盖的章节，确认最小间距（>400字）与最大间距（<1200字）均合规
+* **建议配图总数**：通常 3~6 张高价值点位（全篇均衡，拒绝断层，拒绝堆叠）
 
-Infer its dominant visual needs.
+接着按阅读顺序出具每张插图规划：
 
-Possible tendencies include, but are not limited to:
-
-### Reflective / philosophical
-
-Usually benefits from:
-
-* metaphor;
-* symbolic scenes;
-* emotional transitions;
-* visual pauses;
-* restrained narrative moments;
-* visual echoes of the article's central idea.
-
-Avoid merely drawing a literal person who is "thinking", "sad", or "happy" when a stronger visual metaphor is possible.
-
-### Narrative / personal essay
-
-Usually benefits from:
-
-* key moments;
-* environmental storytelling;
-* objects with narrative meaning;
-* changes in relationship, place, time, or emotional state.
-
-### Explanatory / educational
-
-Usually benefits from:
-
-* concept visualization;
-* analogy;
-* causal relationships;
-* processes;
-* systems;
-* hierarchy;
-* comparison;
-* transformation over time.
-
-Do not reduce every educational illustration to a conventional infographic.
-
-A hand-drawn explanatory illustration may combine objects, characters, spatial relationships, labels, diagrams, and metaphor when that communicates the idea more clearly.
-
-### Argumentative / analytical
-
-Usually benefits from:
-
-* contrasts;
-* competing forces;
-* cause and effect;
-* hidden relationships;
-* structural models;
-* before-and-after states;
-* visual synthesis of a key argument.
-
-### Mixed articles
-
-Use different illustration functions when appropriate.
-
-Do not force every image in an article to perform the same job.
-
----
-
-# Illustration Functions
-
-For every proposed image, decide its primary purpose.
-
-Possible functions include:
-
-* `opening-visual` — establishes the article's visual premise;
-* `metaphor` — translates an abstract idea into a visual situation;
-* `narrative-scene` — depicts a meaningful moment or situation;
-* `concept-explanation` — makes a difficult concept easier to understand;
-* `relationship` — visualizes relationships among ideas or entities;
-* `process` — visualizes sequence, causality, or transformation;
-* `comparison` — contrasts two or more states or ideas;
-* `visual-pause` — creates rhythm and emotional breathing room;
-* `transition` — bridges two sections;
-* `summary` — condenses a section or conclusion visually;
-* `text-replacement` — carries information that would otherwise require substantial prose.
-
-These are reasoning categories, not rigid templates.
-
-Do not force the final image into a conventional diagram solely because its function is explanatory.
-
----
-
-# Image Type
-
-For every proposed image, choose one concise image-type keyword. The type tells the image model what kind of picture to create; it does not replace the illustration function, visual idea, or selected drawing style.
-
-Use one of these fixed values:
-
-* `editorial illustration` — a broad, article-led visual that establishes or reinforces an argument;
-* `conceptual diagram` — an explanatory relationship, system, or abstraction;
-* `process diagram` — a sequence, causal chain, cycle, or transformation;
-* `comparison diagram` — a contrast between states, groups, or outcomes;
-* `narrative scene` — a concrete, meaningful moment or situation;
-* `metaphorical illustration` — a symbolic visual situation for an abstract or emotional idea.
-
-Choose the type from the illustration's purpose and visual approach. Do not ask the user to select it unless they explicitly want to override it. If the user supplies an image type for a specific illustration, preserve that value when it is one of the fixed values.
-
-Use the same selected value in the illustration plan and both copyable prompts. Do not add multiple type labels to one image or invent near-synonyms.
-
----
-
-# Selecting Illustration Positions
-
-Choose illustration positions according to editorial value.
-
-Good candidates often occur where:
-
-* the article introduces its central idea;
-* an abstract idea becomes important;
-* the reader must understand a relationship;
-* explanation becomes text-heavy;
-* a major emotional or argumentative turn occurs;
-* the article shifts from one conceptual section to another;
-* a concrete scene could make an idea memorable;
-* the ending benefits from visual resonance.
-
-Do not choose positions merely because a paragraph is long.
-
-Do not insert an image when it would interrupt a strong reading rhythm.
-
-It is acceptable to recommend very few illustrations.
-
-It is also acceptable to recommend no illustration for a section.
-
-The number of images should emerge from the article.
-
----
-
-# Visual Compression
-
-When Visual Rewrite mode is enabled, look for opportunities where visual expression can reduce textual load.
-
-A candidate is strong when the image can preserve the essential meaning while requiring substantially less prose.
-
-Good candidates include:
-
-* relationships;
-* processes;
-* categories;
-* cycles;
-* comparisons;
-* spatial structures;
-* recurring patterns;
-* concrete analogies;
-* emotional metaphors.
-
-Weak candidates include information whose value depends on exact wording or precise factual details.
-
-When proposing visual replacement, explicitly identify:
-
-1. what text can be shortened or removed;
-2. what information the image must preserve;
-3. what text, if any, must remain beside the image.
-
----
-
-# Designing Each Illustration
-
-For each selected position, determine the image from the article's meaning rather than from generic visual tropes.
-
-Prefer a clear visual idea over a long list of objects.
-
-A strong illustration should usually have:
-
-* one dominant visual proposition;
-* a clear relationship to the surrounding text;
-* enough specificity to communicate the intended idea;
-* enough openness for the image model to make aesthetic decisions.
-
-Do not over-specify:
-
-* exact object placement;
-* exact camera position;
-* exhaustive prop lists;
-* decorative details;
-* lighting;
-* composition;
-* rendering quality;
-
-unless they are necessary to communicate the article's idea or the user explicitly requests them.
-
-Allow the image model room to solve the visual problem.
-
----
-
-# Metaphor Design
-
-For reflective, philosophical, emotional, or abstract writing, avoid literal illustration when a stronger metaphor is available.
-
-A metaphor should:
-
-* express the underlying relationship or tension;
-* remain understandable without explaining every detail;
-* add meaning rather than merely decorate;
-* avoid clichés when a fresher visual situation is available.
-
-Do not automatically reuse common motifs such as:
-
-* crossroads;
-* ladders;
-* cages;
-* cliffs;
-* mirrors;
-* broken clocks;
-* lone figures staring into the distance.
-
-They may be used when genuinely appropriate, but they are not default solutions.
-
-Generate the metaphor from the specific article.
-
----
-
-# Knowledge Illustration
-
-For knowledge-oriented articles, optimize for understanding rather than decoration.
-
-Ask:
-
-> What does the reader need to see in order to understand this faster or more deeply?
-
-Possible visual structures include:
-
-* objects interacting;
-* spatial relationships;
-* visual analogy;
-* transformation;
-* layers;
-* sequences;
-* branching relationships;
-* opposing states;
-* nested systems;
-* annotated scenes;
-* illustrative diagrams.
-
-Do not invent factual relationships that are not supported by the article.
-
-If the source article is ambiguous, preserve that ambiguity rather than fabricating precision.
-
-Any numbers, labels, names, or factual claims placed inside an image must come from the article or other user-provided material unless the user explicitly asks for external research.
-
----
-
-# Style Integration
-
-After the visual concept has been decided, resolve the selected style number through the installed hand-drawn style library.
-
-Reuse the current style library's canonical:
-
-* style number;
-* generation style name;
-* reference author/style name;
-* model capability / reference-image policy when image generation is requested.
-
-Do not duplicate the full style library inside this Skill.
-
-Do not independently invent visual traits for an indexed style.
-
-When generation is requested, defer style-resolution behavior to the hand-drawn style package whenever possible.
-
-The article illustration Skill determines:
-
-> what to communicate.
-
-The hand-drawn style Skill determines:
-
-> how that selected style should be invoked.
-
----
-
-# Prompt Writing
-
-Each image prompt should be concise enough to leave meaningful creative freedom to the image model.
-
-The prompt should primarily contain:
-
-1. selected style identity;
-2. image type;
-3. the visual idea;
-4. necessary subjects and relationships;
-5. essential factual content;
-6. user-specified constraints.
-
-Write image type as a standalone field near the beginning of every copyable prompt:
-
-* Chinese prompt: `图片类型：{image_type}。`
-* English prompt: `Image type: {image_type}.`
-
-Place this field before the theme or visual idea. In graphic-text mode, it must appear before `主题：` / `Theme:` and must not alter the fixed suffix required by the hand-drawn style package.
-
-Do not automatically add:
-
-* generic quality terms;
-* elaborate camera instructions;
-* excessive rendering adjectives;
-* long negative prompts;
-* unnecessary composition rules.
-
-For philosophical articles, emphasize the visual metaphor or situation.
-
-For knowledge articles, emphasize the relationship the image needs to explain.
-
-Do not simply paste the surrounding paragraph into the image prompt.
-
-Translate meaning into visual information.
-
----
-
-# Text Inside Images
-
-Use text inside an illustration only when it materially improves comprehension or when requested by the user.
-
-Prefer little or no text for:
-
-* emotional illustration;
-* metaphorical illustration;
-* narrative scenes.
-
-Text can be useful for:
-
-* labels;
-* simple comparison;
-* process stages;
-* key relationships;
-* short conceptual annotations.
-
-Do not turn every illustration into a poster.
-
-Do not reproduce long article passages inside images.
-
----
-
-# Output
-
-Start with a concise overall recommendation.
-
-Include:
-
-* inferred article type;
-* visual strategy;
-* recommended number of illustrations;
-* whether any section would benefit from visual replacement.
-
-Then provide each illustration in reading order.
-
-For each image use:
-
+```markdown
 ### Illustration N
 
-**Insert after:**
-Identify the location using the nearest heading or a short recognizable excerpt from the article.
+**插入/替换位置 / Anchor:**
+`[引用紧邻的小标题或上下文关键句（10-20字）]`
 
-**Purpose:**
-Explain what this image contributes to the reading experience.
+**配图定位 / Purpose:**
+解释该图在阅读流中的认知价值与承接逻辑。
 
-**图片类型：**
-One selected value from the fixed image-type list.
+**排版图型 / Layout ID:**
+`IG-013` (漏斗转化型信息图) / `IG-010` (阶段进阶型信息图) / `IG-002` (中心标注信息图) 等
 
-**Visual approach:**
-Describe the central visual idea in a few sentences.
+**图片类型 / Image Type:**
+process diagram / conceptual diagram / comparison diagram / infographic
 
-**Relationship to text:**
-One of:
+**核心保真要素 / Core Knowledge to Preserve:**
+[明确列出本图必须保留的数学公式、量化指标数字（如>8%）、关键话术台词或业务红线]
 
-* supplements text;
-* explains text;
-* visually summarizes text;
-* replaces part of text.
+**图文关系 / Relationship to Text:**
+replaces complex text (文字替换与认知降负) / supplements text (内容补充) / visual-pause (视觉停顿)
 
-If text modification is proposed, identify the exact passage and provide the proposed revised text.
+**（若为文字替换）被图片替代的原繁冗文本 / Text to Replace:**
+> [明确摘录原文中将被该图替代并删除的复杂文字推导、长篇ASCII图表或嵌套列表片段]
 
-**Style:**
-Selected style number and resolved style name.
+**（若为文字替换）精炼后的轻量导读 / Simplified Replacement Text:**
+[文字替换后在 Markdown 正文中保留的极简核心要点/行动清单，必须完整保留核心数值与公式结论，通常为 1-3 句话]
 
-**Image prompt:**
-Provide generation-ready Chinese and English prompts. Each prompt must include the same image-type field before its theme or visual idea.
+**图形隐喻设计 / Visual Metaphor:**
+[明确说明用何种几何隐喻降低认知负荷，如上宽下窄漏斗、上升阶梯、对比天平]
 
-Do not include unnecessary implementation commentary between illustrations.
+**画风与配色 / Style & Color:**
+`#{style_number} · {style_name}` + `{color_id} · {color_name}`
 
----
-
-# Modified Article
-
-In Preserve mode, do not reproduce the entire article unless the user requests it.
-
-In Visual Rewrite mode, after the illustration plan, provide a revised article only when useful or explicitly requested.
-
-When returning a revised article:
-
-* preserve the author's voice where possible;
-* mark illustration insertion positions clearly;
-* integrate the visual plan into the reading flow;
-* do not rewrite unaffected passages unnecessarily.
+**生图提示词 (Prompt):**
+- **中文提示词**:
+```text
+小红书信息图。排版：{layout_prompt}。纯净背景，大面积舒适留白，严禁桌椅、文具、咖啡杯等任何物理杂物摆设，严禁童话/小精灵角色，图表主体占满画幅90%以上。核心内容：{visual_metaphor_and_labels}。画风：{style_prompt}。色彩：{color_prompt}。画幅比例 4:3。
+```
+- **English Prompt**:
+```text
+Xiaohongshu infographic. Layout: {layout_prompt_en}. Clean background with generous negative space, strictly NO physical desks, stationery, coffee cups or props, strictly NO fairy/doll characters, chart fills over 90% of frame. Core content: {visual_metaphor_and_labels_en}. Style: {style_prompt_en}. Color palette: {color_prompt_en}. Aspect ratio: 4:3.
+```
+```
 
 ---
 
-# Cover Image
+## 交付与后续操作引导 (CTA)
 
-Do not assume every article needs a cover image.
+规划出具后，必须出具标准化双轨交付引导：
 
-Recommend one when it adds value for the publishing context or gives the article a useful visual premise.
+```markdown
+---
 
-A cover image may communicate the article as a whole and does not need to literally summarize every section.
+💡 **插图方案已规划完成！接下来您可以选择以下两种交付方式：**
+
+1. **【方式 A · 自主生图回填】**：
+   复制上方提示词，前往您常用的生图工具出图。生成完成后，将图片文件直接拖入对话或发送本地图片路径，我将自动帮您精简替换原文繁冗文字，输出完整的图文定稿！
+
+2. **【方式 B · 全自动生图插入】**：
+   直接对我说 **“全自动生图”** 或 **“帮我生成所有配图并插入”**，我将全自动调用生图工具批量绘制配图，自动执行文字替换与排版回填，一键输出排版完毕的 Markdown 定稿文件！
+```
 
 ---
 
-# Interaction
+## 双轨自动化回填工作流 (Dual-Track Assembly)
 
-If the article and style number are sufficient, proceed directly.
+当用户触发回填时：
+1. **自动组织资源**：将图片规范命名保存为 `<article_dir>/images/illus_01.webp`（或 `.png`）；
+2. **执行图文装配与高保真文字替换**：
+   - 知识类文章若定义了 `Text to Replace`：自动将原文对应的复杂繁琐文字**修剪替换**为 `![插图](images/illus_0N.webp)` + `*▲ 图N：说明*` + `[精炼导读/公式清单]`；
+   - 严格执行**保真检查**：确保精炼导读中包含原有核心公式与数据；
+   - 若未定义文字替换：规范将图片插入指定锚点之后；
+3. **输出定稿**：生成 `[article_name]_illustrated.md`。
 
-Do not ask the user to choose:
-
-* article type;
-* number of images;
-* illustration categories;
-* metaphor style;
-* information-visualization type;
-
-when these can be inferred from the article.
-
-Ask a question only when missing information materially prevents a good result.
-
-Otherwise use editorial judgment.
-
----
-
-# Image Generation
-
-The default output is the plan and prompts.
-
-Only generate images after explicit user instruction.
-
-The user may request:
-
-* all images;
-* a specific illustration;
-* revisions to one visual concept;
-* an alternate concept;
-* different illustration density.
-
-When generating multiple article illustrations, maintain a coherent visual identity while allowing composition and subject matter to vary according to the role of each image.
-
-Do not make all illustrations visually repetitive merely for consistency.
-
----
-
-# Design Philosophy
-
-This Skill should remain intentionally lightweight.
-
-Prefer:
-
-* judgment over rules;
-* meaning over templates;
-* article-specific visual thinking over generic motifs;
-* minimal input over configuration forms;
-* concise prompts over exhaustive specifications;
-* AI reasoning over manually encoded decision trees.
-
-Rules in this Skill exist mainly to prevent poor default behavior.
-
-They must not replace the model's ability to read, interpret, and visually rethink an article.
+亦可调用内置确定性自动化脚本完成：
+```bash
+python -X utf8 skills/article-illustration-planner/scripts/insert_illustrations.py \
+  --article "D:\path\to\article.md" \
+  --manifest "D:\path\to\manifest.json" \
+  --output "D:\path\to\article_illustrated.md"
+```

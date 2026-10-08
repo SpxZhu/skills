@@ -40,6 +40,9 @@ LAYOUT_CATEGORIES = [
     ("comic-storyboard", "3. 漫画分镜（68 种）", "3. Comic Storyboards (68 Layouts)",
      "适合多格叙事、剧情转折、条漫分镜及动态视觉表现。结构包含规则四格、起承转合、大格冲击、对角切割等专业分镜。",
      "Ideal for multi-panel narratives, webtoons, emotional storylines, and cinematic pacing. Includes standard 4-panel grids, dramatic wide-angle focus, diagonal cuts, and manga storyboards."),
+    ("ip-character", "4. IP设计（1 种）", "4. IP Design (1 Layouts)",
+     "适合 IP 形象设计、吉祥物定位卡、角色档案及形象规范展示。结构包含主形象大图、定位金句、受众画像与多视角展示。",
+     "Ideal for IP character design, mascot positioning cards, character profiles, and specification guides. Includes hero character showcase, positioning slogans, audience profiles, and multi-angle views."),
 ]
 
 
@@ -116,8 +119,34 @@ def build_layouts_md() -> None:
         "social-card": "social-cards",
         "infographic": "infographics",
         "comic-storyboard": "comic-storyboards",
+        "ip-character": "ip-characters",
+        "ecommerce": "ecommerce",
     }
     cols = 3
+    counts = {
+        "social-card": sum(l["category"] == "social-card" for l in layouts),
+        "infographic": sum(l["category"] == "infographic" for l in layouts),
+        "comic-storyboard": sum(l["category"] == "comic-storyboard" for l in layouts),
+        "ip-character": sum(l["category"] == "ip-character" for l in layouts),
+        "ecommerce": sum(l["category"] == "ecommerce" for l in layouts),
+    }
+    categories = [
+        ("social-card", f"1. 社媒卡（{counts['social-card']} 种）", f"1. Social Cards ({counts['social-card']} Layouts)",
+         "适合小红书、朋友圈、公众号配图及观点金句卡片。结构包含上下图文、文案主导、双格对照等。",
+         "Ideal for Xiaohongshu, Instagram, newsletter hero images, and quote cards. Includes top-bottom split, text-driven cards, two-column contrasts, and sticky notes."),
+        ("infographic", f"2. 信息图（{counts['infographic']} 种）", f"2. Infographics ({counts['infographic']} Layouts)",
+         "适合知识科普、对比清单、流程步骤及数据架构展示。结构包含金字塔层级、中心主图标注、多行多列对比等。",
+         "Ideal for knowledge sharing, comparison charts, process workflows, and structured data visuals. Includes hierarchy pyramids, central icons, matrices, and multi-column comparison tables."),
+        ("comic-storyboard", f"3. 漫画分镜（{counts['comic-storyboard']} 种）", f"3. Comic Storyboards ({counts['comic-storyboard']} Layouts)",
+         "适合多格叙事、剧情转折、条漫分镜及动态视觉表现。结构包含规则四格、起承转合、大格冲击、对角切割等专业分镜。",
+         "Ideal for multi-panel narratives, webtoons, emotional storylines, and cinematic pacing. Includes standard 4-panel grids, dramatic wide-angle focus, diagonal cuts, and manga storyboards."),
+        ("ip-character", f"4. IP设计（{counts['ip-character']} 种）", f"4. IP Design ({counts['ip-character']} Layouts)",
+         "适合 IP 形象设计、吉祥物定位卡、角色档案及形象规范展示。结构包含主形象大图、定位金句、受众画像与多视角展示。",
+         "Ideal for IP character design, mascot positioning cards, character profiles, and specification guides. Includes hero character showcase, positioning slogans, audience profiles, and multi-angle views."),
+        ("ecommerce", f"5. 电商（{counts['ecommerce']} 种）", f"5. E-commerce ({counts['ecommerce']} Layouts)",
+         "适合电商商品展示、主图详情页、卖点拆解、使用场景及选购决策。结构包含单品主图、多视角、参数尺寸、材质解析与对比优势等。",
+         "Ideal for e-commerce product showcases, PDP hero images, feature callouts, lifestyle scenarios, and buying guides. Includes single product hero, multi-angle views, specs, material breakdown, and comparative advantage."),
+    ]
 
     # 1. Chinese LAYOUTS.md
     zh_lines = [
@@ -127,19 +156,25 @@ def build_layouts_md() -> None:
         '',
         f"# 排版图型完整图鉴（{len(layouts)} 种）",
         "",
-        f"> 这里收录了本库全部 **{len(layouts)} 种排版图型**（社媒卡、信息图、漫画分镜）的图片预览与排版提示词。在 AI 生图时直接指定图型编号（如 `SC-001`、`IG-003`、`SB-002`），即可精确控制画面的构图版式与排版层次。",
+        f"> 这里收录了本库全部 **{len(layouts)} 种排版图型**（社媒卡、信息图、漫画分镜、IP设计、电商）的图片预览与排版提示词。在 AI 生图时直接指定图型编号（如 `SC-001`、`IG-003`、`SB-002`、`IP-001`、`EC-001`），即可精确控制画面的构图版式与排版层次。",
+        "",
+        "> 💡 **排版图型架构机制**：",
+        "> - **确定性静态排版（纯文本直接拼接型）**：包括 `SC-001`~`SC-020`、`IG` 系列与 `SB` 系列等绝大多数图型，拓扑单一固定，模板直接拼接画风与主题；",
+        "> - **高维动态解析型排版（Skill 级动态决策型）**：以 `SC-021`（自适应双拼照片转译）为代表，属于高维视觉语法系统，由 AI 助手充当设计总监先进行构图决策（越界破框/微缩浮岛/记忆图谱等）与背景净化编译，输出单义强约束提示词。",
         "",
         "## 目录导航",
         "",
-        "- [1. 社媒卡（19 种）](#social-cards)",
-        "- [2. 信息图（31 种）](#infographics)",
-        "- [3. 漫画分镜（68 种）](#comic-storyboards)",
+        f"- [1. 社媒卡（{counts['social-card']} 种）](#social-cards)",
+        f"- [2. 信息图（{counts['infographic']} 种）](#infographics)",
+        f"- [3. 漫画分镜（{counts['comic-storyboard']} 种）](#comic-storyboards)",
+        f"- [4. IP设计（{counts['ip-character']} 种）](#ip-characters)",
+        f"- [5. 电商（{counts['ecommerce']} 种）](#ecommerce)",
         "",
         "---",
         "",
     ]
 
-    for cat_id, cat_title_zh, _, cat_desc_zh, _ in LAYOUT_CATEGORIES:
+    for cat_id, cat_title_zh, _, cat_desc_zh, _ in categories:
         cat_layouts = [l for l in layouts if l["category"] == cat_id]
         anchor = anchor_map.get(cat_id, cat_id)
         zh_lines.append(f'<a id="{anchor}"></a>')
@@ -186,19 +221,25 @@ def build_layouts_md() -> None:
         '',
         f"# Layout Composition Visual Sheet ({len(layouts)} Layouts)",
         "",
-        f"> Visual previews and layout prompts for all **{len(layouts)} layout compositions** (Social Cards, Infographics, Comic Storyboards). Specify layout IDs (e.g. `SC-001`, `IG-003`, `SB-002`) during AI image generation to control compositions, text placements, and visual hierarchy.",
+        f"> Visual previews and layout prompts for all **{len(layouts)} layout compositions** (Social Cards, Infographics, Comic Storyboards, IP Design, E-commerce). Specify layout IDs (e.g. `SC-001`, `IG-003`, `SB-002`, `IP-001`, `EC-001`) during AI image generation to control compositions, text placements, and visual hierarchy.",
+        "",
+        "> 💡 **Layout Architecture Modes**:",
+        "> - **Deterministic Static Layouts (Direct Template Concatenation)**: Covers most layouts (`SC-001`~`SC-020`, `IG` series, `SB` series) with fixed topologies directly assembled with chosen styles;",
+        "> - **Dynamic Generative Frameworks (Skill-level Reasoning & Resolution)**: Exemplified by `SC-021` (Adaptive Split Photo-to-Art), functioning as an expressive visual syntax system where the AI assistant acts as Art Director to resolve specific composition mechanics (e.g. Boundary Break, Miniature Diorama, Memory Knolling) and enforce background purging before outputting singular, high-contrast prompts.",
         "",
         "## Table of Contents",
         "",
-        "- [1. Social Cards (19 Layouts)](#social-cards)",
-        "- [2. Infographics (31 Layouts)](#infographics)",
-        "- [3. Comic Storyboards (68 Layouts)](#comic-storyboards)",
+        f"- [1. Social Cards ({counts['social-card']} Layouts)](#social-cards)",
+        f"- [2. Infographics ({counts['infographic']} Layouts)](#infographics)",
+        f"- [3. Comic Storyboards ({counts['comic-storyboard']} Layouts)](#comic-storyboards)",
+        f"- [4. IP Design ({counts['ip-character']} Layouts)](#ip-characters)",
+        f"- [5. E-commerce ({counts['ecommerce']} Layouts)](#ecommerce)",
         "",
         "---",
         "",
     ]
 
-    for cat_id, _, cat_title_en, _, cat_desc_en in LAYOUT_CATEGORIES:
+    for cat_id, _, cat_title_en, _, cat_desc_en in categories:
         cat_layouts = [l for l in layouts if l["category"] == cat_id]
         anchor = anchor_map.get(cat_id, cat_id)
         en_lines.append(f'<a id="{anchor}"></a>')
@@ -248,6 +289,7 @@ def build_colors_md() -> None:
         (3, "古典红绿（6 种）", "Classic Red & Vintage (6 Colors)", "历史沉淀、浓郁厚重的东方与古典艺术色，适合节庆、传统文化、复古与叙事题材。", "Historical and rich classical tones, ideal for festivals, heritage, vintage, and narrative themes."),
         (4, "浪漫粉紫（6 种）", "Romantic Pink & Purple (6 Colors)", "温柔优雅、热烈浪漫的情感色系，适合女性生活、诗意、美妆与自我表达题材。", "Gentle, elegant, and romantic palettes, ideal for feminine lifestyle, poetry, cosmetics, and self-expression."),
         (5, "暖阳大地（6 种）", "Warm Sun & Earth (6 Colors)", "温暖明媚、沉静质朴的大地色系，适合晨光、咖啡、穿搭、秋收与温馨日常题材。", "Warm, sunny, and grounded earth tones, ideal for morning light, coffee, autumn, and cozy daily life."),
+        (6, "中性色系（6 种）", "Classic Neutral Tones (6 Colors)", "克制沉静、现代高级的黑白灰与中性色调，适合极简生活、建筑空间、沉思书房与质朴日常题材。", "Restrained, tranquil, and modern neutral tones across grey, black, cream, and taupe, ideal for minimalist lifestyle, architectural spaces, reflective studies, and serene daily life."),
     ]
     cols = 3
 
@@ -259,7 +301,7 @@ def build_colors_md() -> None:
         '',
         f"# 经典单色主题色完整图鉴（{len(colors)} 种）",
         "",
-        f"> 这里收录了本库精选的 **{len(colors)} 种经典单色主题色**（涵盖经典蓝调、清新绿意、古典红绿、浪漫粉紫、暖阳大地）。在 AI 生图时直接指定色彩编号（如 `C-01`、`C-10`、`C-15`）或色彩名称（如“克莱因蓝”、“鼠尾草绿”），即可精确控制画面的主色调与情绪氛围。",
+        f"> 这里收录了本库精选的 **{len(colors)} 种经典单色主题色**（涵盖经典蓝系、清新绿系、古典红绿、浪漫粉紫、暖阳大地、中性色系）。在 AI 生图时直接指定色彩编号（如 `C-01`、`C-10`、`C-15`、`C-31`）或色彩名称（如“克莱因蓝”、“鼠尾草绿”、“佩恩灰”），即可精确控制画面的主色调与情绪氛围。",
         "",
         "## 目录导航",
         "",
@@ -304,7 +346,7 @@ def build_colors_md() -> None:
         '',
         f"# Classic Monochrome Colors Visual Sheet ({len(colors)} Colors)",
         "",
-        f"> Visual previews and color prompts for all **{len(colors)} curated monochrome theme colors** (Classic Blue, Fresh Green, Vintage Red & Classical, Romantic Pink & Purple, Warm Sun & Earth). Specify color IDs (e.g. `C-01`, `C-10`, `C-15`) or color names (e.g. 'Klein Blue', 'Sage Green') during AI image generation to precisely control color palettes and visual moods.",
+        f"> Visual previews and color prompts for all **{len(colors)} curated monochrome theme colors** (Classic Blue, Fresh Green, Vintage Red & Classical, Romantic Pink & Purple, Warm Sun & Earth, Classic Neutral Tones). Specify color IDs (e.g. `C-01`, `C-10`, `C-15`, `C-31`) or color names (e.g. 'Klein Blue', 'Sage Green', 'Payne\\'s Grey') during AI image generation to precisely control color palettes and visual moods.",
         "",
         "## Table of Contents",
         "",
