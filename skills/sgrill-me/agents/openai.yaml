@@ -1,0 +1,3 @@
+interface:
+  display_name: "sgrill-me"
+  short_description: "沿用 grill-me 流程，适配决策呈现，最终汇总确认后再实施"
