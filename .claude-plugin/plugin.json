@@ -1,6 +1,6 @@
 {
   "name": "jushawn-skills",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "jushawn's agent skills.",
   "author": {
     "name": "jushawn",
@@ -15,7 +15,6 @@
   "skills": [
     "./skills/gpt-image-2-style-library",
     "./skills/show-me",
-    "./skills/typesafe-ai",
     "./skills/handraw-style"
   ]
 }
